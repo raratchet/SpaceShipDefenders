@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using Photon.Pun;
 
 public class BulletFactory: MonoBehaviour
 {
@@ -17,7 +18,7 @@ public class BulletFactory: MonoBehaviour
         {
             for(int i = 0; i < quantity - bulletPool.Size; i++)
             {
-                Bullet instance = Instantiate(bulletBase).GetComponent<Bullet>();
+                Bullet instance = GameManager.isOnline ? null : Instantiate(bulletBase).GetComponent<Bullet>();
                 bulletPool.Push_back(instance);
                 instance.gameObject.SetActive(false);
             }
@@ -52,7 +53,9 @@ public class BulletFactory: MonoBehaviour
         }
         if(maxBulletCount >= bulletPool.Size)
         {
-            Bullet bullet = Instantiate(bulletBase).GetComponent<Bullet>();
+            Bullet bullet = GameManager.isOnline 
+                ? PhotonNetwork.Instantiate(bulletBase.name , Vector3.zero, Quaternion.identity).GetComponent<Bullet>()
+                : Instantiate(bulletBase).GetComponent<Bullet>();
             bullet.transform.position = position;
             bullet.direction = direction;
             bullet.shooter = shooter;

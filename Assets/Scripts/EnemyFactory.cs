@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using Photon.Pun;
 
 public enum EnemyType
 {
@@ -27,7 +28,9 @@ public class EnemyFactory : MonoBehaviour
 
             for (int i = 0; i < quantity - enemyPool.Size; i++)
             {
-                var instanceBlob = Instantiate(baseInstance).GetComponent<Type>();
+                var instanceBlob = GameManager.isOnline 
+                    ? PhotonNetwork.Instantiate(baseInstance.name, Vector3.zero, Quaternion.identity).GetComponent<Type>()
+                    : Instantiate(baseInstance).GetComponent<Type>();
                 instanceBlob.gameObject.SetActive(false);
             }
         }
@@ -94,7 +97,9 @@ public class EnemyFactory : MonoBehaviour
         }
         if (maxEnemyCount >= enemyPool.Size)
         {
-            var blobo = Instantiate(GetBaseInstance<Type>()).GetComponent<Type>();
+            var blobo = GameManager.isOnline 
+                ? PhotonNetwork.Instantiate(GetBaseInstance<Type>().name, Vector3.zero, Quaternion.identity).GetComponent<Type>()
+                : Instantiate(GetBaseInstance<Type>()).GetComponent<Type>(); ; 
             int indexo = Random.Range(0, spawners.Size);
             var spawnero = spawners.Get_at(indexo);
             blobo.transform.position = spawnero.transform.position;

@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEngine.SceneManagement;
+using Photon.Pun;
+
 public class GameManager : MonoBehaviour
 {
 
@@ -12,11 +14,16 @@ public class GameManager : MonoBehaviour
     public int enemiesAlive;
     public float waitSpawnTime;
     public int enemiesPerWave;
+    public GameObject playerPrefab;
+    public GameObject[] playerSpawners;
 
     public bool gameOver = false;
+    public static bool isMultiplayer = false;
+    public static bool isOnline = false;
 
     private List<Ship> activeShips = new List<Ship>();
     private List<Player> deathPlayers = new List<Player>();
+    private int playerCount = 0;
 
     private static GameManager _instance;
     public static GameManager Instance { get { return _instance; } }
@@ -45,11 +52,30 @@ public class GameManager : MonoBehaviour
         {
             activeShips.Push_back(ship.GetComponent<Ship>());
         }
+        SpawnPlayer();
+
+        Debug.Log("Multiplayer: " + isMultiplayer + "Online: " + isOnline);
     }
 
     void Update()
     {
 
+    }
+
+    void SpawnPlayer()
+    {
+        if(isMultiplayer && isOnline)
+        {
+            //Aqui con photon
+            GameObject p = PhotonNetwork.Instantiate(playerPrefab.name, playerSpawners[playerCount].transform.position, Quaternion.identity);
+            p.transform.parent = null;
+        }
+        else
+        {
+            GameObject p = Instantiate(playerPrefab, playerSpawners[playerCount].transform);
+            p.transform.parent = null;
+        }
+        playerCount++;
     }
 
     void RegisterToEvents()
@@ -59,7 +85,6 @@ public class GameManager : MonoBehaviour
         EventManager.enemyDeathEvent.myEvent += OnEnemyDeathEvent;
         EventManager.playerDeathEvent.myEvent += OnPlayerDeathEvent;
     }
-
     void StartWave()
     {
         wave++;
@@ -70,13 +95,11 @@ public class GameManager : MonoBehaviour
         InitialWaveSpawn();
         StartCoroutine(SpawnEnemies());
     }
-
     IEnumerator StartGame()
     {
         yield return new WaitForSeconds(2);
         StartWave();
     }
-
     void InitialWaveSpawn()
     {
         int quantity = (enemiesLeft / 10) > 5 ? enemiesLeft / 10 : 5;
@@ -101,17 +124,14 @@ public class GameManager : MonoBehaviour
                 yield return new WaitForSeconds(waitSpawnTime);
         }
     }
-
     void OnShipDamageEvent()
     {
 
     }
-
     void OnPlayerDeathEvent()
     {
         StartCoroutine(RevivePlayer((Player)EventManager.playerDeathEvent.sender));
     }
-
     void OnEnemyDeathEvent()
     {
         enemiesAlive--;
@@ -121,24 +141,20 @@ public class GameManager : MonoBehaviour
             StartWave();
         }
     }
-
     void OnPowerUpDespawnEvent()
     {
 
     }
-
     void OnPowerUpPickUpEvent()
     {
 
     }
-
     void OnShipDestroyEvent()
     {
         activeShips.Remove((Ship)EventManager.shipDestroyEvent.sender);
         gameOver = true;
         StartCoroutine(EndGame());
     }
-
     IEnumerator EndGame()
     {
         yield return new WaitForSeconds(5);
@@ -149,7 +165,6 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSeconds(3f);
         player.Respawn();
     }
-
     public void GenerateBullet(GameObject shooter,Vector3 position, Vector3 direction)
     {
         bulletFactory.InstantiateBullet(shooter,position, direction);

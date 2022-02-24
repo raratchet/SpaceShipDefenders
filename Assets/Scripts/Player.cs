@@ -2,6 +2,7 @@
 using UnityEngine;
 using System;
 using System.Collections;
+using Photon.Pun;
 
 public class Player : MonoBehaviour, IDamageable
 {
@@ -20,6 +21,8 @@ public class Player : MonoBehaviour, IDamageable
     public float bulletSpeed = -1;
     private float lastShoot = 0;
     private AudioSource audio;
+    private PhotonView view;
+    private bool isOnline = false;
 
     //Variable temporales para manipular camara
     public int a;
@@ -30,41 +33,56 @@ public class Player : MonoBehaviour, IDamageable
     private bool shooting = false;
     void Start()
     {
+        playerCamera = FindObjectOfType<Camera>();
         anim = GetComponent<Animator>();
         audio = GetComponent<AudioSource>();
+        view = GetComponent<PhotonView>();
         ammo = maxAmmo;
         health = baseHealth;
-        pController = new PlayerController();
-        pController.Enable();
-        pController.Player.Move.performed += context => move = context.ReadValue<Vector2>();
-        pController.Player.Move.canceled += context => move = Vector2.zero;
-        pController.Player.Look.performed += context => rot = context.ReadValue<Vector2>();
-        pController.Player.Fire.performed += context => shooting = true;
-        pController.Player.Fire.canceled += context => shooting = false;
-        pController.Player.Reload.performed += context => ReloadAction();
+        isOnline = GameManager.isOnline;
+        if( isOnline && view.IsMine)
+        {
+            pController = new PlayerController();
+            pController.Enable();
+            pController.Player.Move.performed += context => move = context.ReadValue<Vector2>();
+            pController.Player.Move.canceled += context => move = Vector2.zero;
+            pController.Player.Look.performed += context => rot = context.ReadValue<Vector2>();
+            pController.Player.Fire.performed += context => shooting = true;
+            pController.Player.Fire.canceled += context => shooting = false;
+            pController.Player.Reload.performed += context => ReloadAction();
+        }
     }
 
     void OnEnable()
     {
         health = baseHealth;
-        if (pController != null)
-             pController.Enable();
+        if(isOnline)
+            if (pController != null && view.IsMine)
+                pController.Enable();
+        else
+            if (pController != null)
+                pController.Enable();
     }
 
     void OnDisable()
     {
-        pController.Disable();
+        if(isOnline && view.IsMine)
+            pController.Disable();
     }
     void Update()
     {
-        Attack();
+        if (isOnline && view.IsMine)
+            Attack();
     }
 
     void FixedUpdate()
     {
-        Movement();
-        Rotate();
-        MoveCamera();
+        if (isOnline && view.IsMine)
+        {
+            Movement();
+            Rotate();
+            MoveCamera();
+        }
     }
 
     private Vector3 movement = new Vector3();
@@ -73,6 +91,7 @@ public class Player : MonoBehaviour, IDamageable
     {
         if(!isDead)
         {
+
             movement.x = move.x * Time.deltaTime * speed;
             movement.y = 0;
             movement.z = move.y * Time.deltaTime * speed;
